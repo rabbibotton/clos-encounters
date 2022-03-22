@@ -10,6 +10,6 @@ At your CL prompt (ql:quickload :clos-encounters)
 (clos-encounters:start-game)
 ```
 
-![Image of CLOG](https://rabbibotton.github.io/images/clos-encounters.png)
+![Image of CLOS-ENCOUNTERS](https://rabbibotton.github.io/images/clos-encounters.png)
 
 Enjoy!
