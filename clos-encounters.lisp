@@ -25,7 +25,7 @@
   (open-browser))                       ; defined later we can refer to it in code now.
 
 ;; TITLE-SCREEN has one parameter, the name of the parameter does not matter.
-;; only its order is significant. Named "keyword" parameters we will see that 
+;; only its order is significant. Named "keyword" parameters we will see that
 ;; later.
 ;;
 ;; In case wondering:
@@ -43,7 +43,7 @@
   ;; try removing the * and M-X-c and see the error.
   (let* ((layout (create-panel-box-layout body))          ; CLOG's panel box layout
 	 (splash (create-div (center-panel layout)        ; Some Content in a CLOG-div object
-			     :content "<center>They Are Coming!!!</center>")))       
+			     :content "<center>They Are Coming!!!</center>")))
     (center-children (center-panel layout))               ; center-panel is the accessor
                                                           ; for a slot/element in the layout object
     (set-border splash "2px" :solid :black)               ; set-border is a method of CLOG-OBJects.
@@ -61,11 +61,11 @@
        (declare (ignore obj))  ; name. In Lisp functions are data too and
        (run-game body)))))     ; here is an argument to set-on-click.
 
-(defparameter *evil-dude* "--🛸--" "Them")
-(defparameter *good-dude* "--⛄--" "Us")
-(defparameter *evil-bomb* "💩" "Their bombs")
-(defparameter *good-bomb* "🪨" "Our  bombs")
-(defvar *high-score* 0 "Global High Score") ; Global means for every thread, every browser.
+(defparameter *evil-dude* "--🛸--" "Them")    ; Common Lisp is cool with UTF-8 support
+(defparameter *good-dude* "--⛄--" "Us")      ; Ear mufs are like flags - these are global
+(defparameter *evil-bomb* "💩" "Their bombs") ; Watch out! defparameter is good for settings
+(defparameter *good-bomb* "🪨" "Our  bombs")  ; and what is usually a constant in most langs.
+(defvar *high-score* 0 "Global High Score")   ; defvar is about declaring variables.
 
 (defun run-game (body)
   "Run the game"
@@ -81,7 +81,9 @@
 					       :bottom-height 0))
 	 (points      0)
 	 (evil-speed  200)
-	 (score       (create-div (left-panel score-panel) :content "SCORE: 0"))
+	 (score       (create-div (left-panel score-panel)
+				  :content "SCORE: 0"))
+	 ;;  format nil is like the swiss army knife of string tools
 	 (high-score  (create-div (center-panel score-panel)
 				  :content (format nil "HIGH SCORE: ~A" *high-score*)))
 	 (speed       (create-div (right-panel score-panel)
@@ -89,14 +91,15 @@
 	 (arena      (center-panel layout))
 	 (arena-w    (width arena))
 	 (arena-h    (height arena))
+	 ;; spans are a group of characters. divs are blocks of space
 	 (evil-avatar (create-span arena :content *evil-dude*))
 	 (evil-w      (width evil-avatar))
 	 (evil-h      (height evil-avatar))
-	 (evil-dir    'forward)
+	 (evil-dir    'forward) ; symbols are an efficient real type in Lisp
 	 (good-avatar (create-span arena :content *good-dude*))
 	 (good-w      (width good-avatar))
 	 (good-h      (height good-avatar))
-	 (done        nil))
+	 (done        nil)) ; when not nil triggers are app to shutdown
     ;; setup colors
     (setf (background-color body) :navy)
     (setf (background-color arena) :lightblue)
@@ -106,15 +109,20 @@
     ;; setup text
     (setf (text-alignment high-score) :center)
     ;; setup avatars
-    (setf (style body "user-select") :none)
-    (setf (positioning evil-avatar) :absolute)
-    (setf (positioning good-avatar) :absolute)
+    (setf (style body "user-select") :none)    ; This is a css style that turns off highlight text
+    (setf (positioning evil-avatar) :absolute) ; Positioning let's use hand place elements
+    (setf (positioning good-avatar) :absolute) ; absolute keeps positions relative to our arena
     (setf (left evil-avatar) (unit :px (random 100)))
     (setf (left good-avatar) (unit :px 10))
     (setf (bottom good-avatar) (unit :px 0))
     ;; setup move and fire of good guy
     (set-on-mouse-click arena
 			(lambda (obj data)
+			  ;; Since we never use the obj parameter we ignore it
+			  ;; strictly speaking this is not needed, but most
+			  ;; compilers will issue warnings. Common Lisp compilers
+			  ;; available today give strong static and dynamic typing
+			  ;; and checks.
 			  (declare (ignore obj))
 			  (let* ((bomb (create-span arena :content *good-bomb*)))
 			    (setf (positioning bomb) :absolute)
@@ -137,28 +145,39 @@
 				(setf (text high-score)
 				      (format nil "HIGH SCORE: ~A" *high-score*))))
 			    (destroy bomb))))
+    ;; Events when fired are in new threads. Pressing 's' will set done to t and
+    ;; so break out of the game loop and end the game.
     (set-on-character body
 		      (lambda (obj data)
 			(declare (ignore obj))
-			(when (equalp data #\s)
-			  (setf done t))))
+			(when (equalp data #\s) ; equalp is like equal but is
+			  (setf done t))))      ; case insensitive
+    ;; The Game Loop
     (loop
       (sleep .001)
-      (when (or done
-		(not (validp body)))
+      (when (or done                 ; We break out of the loop if our browser
+		(not (validp body))) ; connetion dies or done is true
 	(setf (background-color body) :white)
-	(setf (inner-html body)
+	(setf (inner-html body)      ; replace all the html in one shot
 	      (format nil "GAME OVER - SCORE : ~A" points))
-	(return))
+	(return)) ; This is the basic 'loop' with a return not using
+                  ; extended loop macro if tutorial 8
       (let ((x (position-left evil-avatar)))
-	(cond ((> (+ x evil-w) arena-w)
-	       (setf evil-dir 'reverse))
-	      ((< x 0)
+	(cond ((> (+ x evil-w) arena-w)   ; cond lets us do multiple conditions
+	       (setf evil-dir 'reverse))  ; and does not require us to have a t
+	      ((< x 0)                    ; default condition.
 	       (setf evil-dir 'forward)))
-	(if (equal evil-dir 'forward)
-	    (incf x)
+	(if (eq evil-dir 'forward)        ; eq is equal but only works on symbols
+	    (incf x)                      ; and is more efficient
 	    (decf x))
 	(when (equal (random evil-speed) 1)
+	  ;; The user bombs start in an event thread and we hold on to that thread
+	  ;; to shoot up the bomb. Here we create an event thread, see Tutorial 14,
+	  ;; for each bomb dropped by enemy. Today even simple laptops have tons of
+	  ;; cores and can handle many concurrent threads easily and efficiently.
+	  ;; Always code the clearest solution to any problem, afterwards optimize
+	  ;; if _needed_. Understanding your code is the most important real
+	  ;; optimization.
 	  (bordeaux-threads:make-thread
 	   (lambda ()
 	     (let* ((bomb (create-span arena :content *evil-bomb*)))
